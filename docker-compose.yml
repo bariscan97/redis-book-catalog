@@ -1,0 +1,45 @@
+version: '3.9'
+
+services:
+  redisearch:
+    image: redis/redis-stack-server:latest
+    container_name: redisearch
+    ports:
+      - "6379:6379"
+    networks:
+      - redis_network
+
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: my_database
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - redis_network
+  
+  goapp: 
+    build:
+      dockerfile: Dockerfile
+      context: .
+    ports:
+      - "3000:3000"
+    restart: always
+    depends_on:
+      - postgres
+      - redisearch
+    networks:
+      - redis_network
+        
+volumes:
+  redis_data:
+  postgres_data:
+
+networks:
+  redis_network:
+    driver: bridge
