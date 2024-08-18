@@ -7,7 +7,7 @@ services:
     ports:
       - "6379:6379"
     networks:
-      - redis_network
+      - book_network
 
   postgres:
     image: postgres:latest
@@ -21,7 +21,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - redis_network
+      - book_network
   
   goapp: 
     build:
@@ -34,12 +34,12 @@ services:
       - postgres
       - redisearch
     networks:
-      - redis_network
+      - book_network
         
 volumes:
   redis_data:
   postgres_data:
 
 networks:
-  redis_network:
+  book_network:
     driver: bridge
