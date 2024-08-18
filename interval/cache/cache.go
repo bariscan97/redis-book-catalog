@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
-
+	"os"
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 )
@@ -26,7 +26,7 @@ type IRedisClient interface {
 func NewCacheClient() IRedisClient {
 	return &RedisClient{
 		rdb: redis.NewClient(&redis.Options{
-			Addr: "redisearch:6379",
+			Addr: os.Getenv("REDIS_ADDR"),
 		}),
 	}
 }
