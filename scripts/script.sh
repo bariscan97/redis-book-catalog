@@ -36,7 +36,8 @@ CREATE TABLE IF NOT EXISTS books (
     title VARCHAR(50) NOT NULL,
     author VARCHAR(100) NOT NULL,
     category VARCHAR(100) NOT NULL,
-    price VARCHAR(100) NOT NULL
+    price VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 '
 echo "Tables  created"
@@ -48,6 +49,6 @@ done
 
 echo "REDIS IS READY BABY"
 
-winpty docker exec -it redisearch redis-cli FT.CREATE idx:books ON HASH PREFIX 1 "book:" SCHEMA title TEXT SORTABLE author TEXT SORTABLE category TEXT SORTABLE price NUMERIC SORTABLE
+winpty docker exec -it redisearch redis-cli FT.CREATE idx:books ON HASH PREFIX 1 "book:" SCHEMA title TEXT SORTABLE author TEXT SORTABLE category TEXT SORTABLE price NUMERIC SORTABLE created_at NUMERIC SORTABLE
 
 

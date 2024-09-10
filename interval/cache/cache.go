@@ -4,9 +4,11 @@ import (
 	"bookservice/pkg/models"
 	"context"
 	"fmt"
+	"os"
 	"strconv"
 	"sync"
-	"os"
+	"time"
+
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 )
@@ -85,27 +87,18 @@ func (redisCli *RedisClient) GetBookById(bookID uuid.UUID) ([]models.BookModel, 
 
 	var book models.BookModel
 
-	for k, v := range result {
+	book.Author = result["author"]
+	book.Category = result["category"]
+	book.Title = result["title"]
+	book.Price = result["price"]
 
-		switch k {
-		case "author":
-			book.Author = v
-		case "category":
-			book.Category = v
-		case "title":
-			book.Title = v
-		case "price":
-			book.Price = v
-		case "id":
-			id, err := uuid.Parse(v)
-			if err != nil {
+	created_at, _ := time.Parse(time.RFC3339, result["create_at"])
 
-				return []models.BookModel{}, fmt.Errorf(err.Error())
-			}
-			book.Id = id
-		}
+	book.Created_at = created_at
 
-	}
+	id, _ := uuid.Parse(result["id"])
+
+	book.Id = id
 
 	return []models.BookModel{book}, nil
 }
@@ -136,7 +129,7 @@ func (redisCli *RedisClient) GetAllBooks(queries map[string]string) ([]models.Bo
 
 	pageSize := start * 15
 
-	result, err := redisCli.rdb.Do(ctx, "FT.SEARCH", "idx:books", query, "LIMIT", strconv.Itoa(start), strconv.Itoa(pageSize)).Result()
+	result, err := redisCli.rdb.Do(ctx, "FT.SEARCH", "idx:books", query, "SORTBY", "created_at", "DESC", "LIMIT", strconv.Itoa(start), strconv.Itoa(pageSize)).Result()
 
 	if err != nil {
 		return []models.BookModel{}, nil
@@ -170,11 +163,11 @@ func (redisCli *RedisClient) GetAllBooks(queries map[string]string) ([]models.Bo
 				case "price":
 					book.Price = doc[i+1].(string)
 				case "id":
-					id, err := uuid.Parse(doc[i+1].(string))
-					if err != nil {
-						return []models.BookModel{}, fmt.Errorf(err.Error())
-					}
+					id, _ := uuid.Parse(doc[i+1].(string))
 					book.Id = id
+				case "create_at":
+					created_at, _ := time.Parse(time.RFC3339, doc[i+1].(string))
+					book.Created_at = created_at
 				}
 
 			}

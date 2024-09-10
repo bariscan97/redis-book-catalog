@@ -1,6 +1,8 @@
 package models
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 )
 
@@ -11,11 +13,11 @@ type CreateBookRequestModel struct {
 	Price    string `json:"price"    validate:"required"`
 }
 
-
 type BookModel struct {
-	Id       uuid.UUID
-	Author   string
-	Title    string
-	Category string
-	Price    string
+	Id        uuid.UUID `json:"id"`
+	Author    string    `json:"author"`
+	Title     string    `json:"title"`
+	Category  string    `json:"category"`
+	Price     string    `json:"price"`
+	Created_at time.Time `json:"created_at"`
 }

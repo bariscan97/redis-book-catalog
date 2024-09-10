@@ -69,27 +69,15 @@ func (repo *BookRepository) GetBookById(bookID uuid.UUID) (models.BookModel, err
 	`
 	rows := repo.pool.QueryRow(ctx, sql, bookID)
 
-	var (
-		id       uuid.UUID
-		author   string
-		title    string
-		category string
-		price    string
-	)
+	book := models.BookModel{}
 
-	err := rows.Scan(&id, &author, &title, &category, &price)
+	err := rows.Scan(&book.Id, &book.Author, &book.Title, &book.Category, &book.Price, &book.Created_at)
 
 	if err != nil {
 		return models.BookModel{}, err
 	}
 
-	return models.BookModel{
-		Id:       id,
-		Author:   author,
-		Title:    title,
-		Category: category,
-		Price:    price,
-	}, nil
+	return book, nil
 }
 
 func (repo *BookRepository) UpdatePriceById(bookID uuid.UUID, newPrice string) error {
@@ -147,9 +135,11 @@ func (repo *BookRepository) GetAllBooks(queries map[string]string) ([]models.Boo
 
 	parameters = append(parameters, page)
 
+	order := " ORDER BY createAt DESC "
+
 	pagination := fmt.Sprintf(" LIMIT 15 OFFSET $%d * 15", count)
 
-	sql := start_query + addQueries + pagination
+	sql := start_query + addQueries + order + pagination
 	rows, err := repo.pool.Query(ctx, sql, parameters...)
 
 	if err != nil {
@@ -159,24 +149,13 @@ func (repo *BookRepository) GetAllBooks(queries map[string]string) ([]models.Boo
 	var Books []models.BookModel
 
 	for rows.Next() {
-		var (
-			id       uuid.UUID
-			author   string
-			title    string
-			category string
-			price    string
-		)
-		if DbError := rows.Scan(&id, &author, &title, &category, &price); DbError != nil {
+		var book models.BookModel
+
+		if DbError := rows.Scan(&book.Id, &book.Author, &book.Title, &book.Category, &book.Price, &book.Created_at); DbError != nil {
 			return []models.BookModel{}, fmt.Errorf(DbError.Error())
 		}
 
-		Books = append(Books, models.BookModel{
-			Id:       id,
-			Author:   author,
-			Title:    title,
-			Category: category,
-			Price:    price,
-		})
+		Books = append(Books, book)
 	}
 
 	return Books, nil
