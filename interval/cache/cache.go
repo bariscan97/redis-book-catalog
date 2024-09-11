@@ -151,22 +151,22 @@ func (redisCli *RedisClient) GetAllBooks(queries map[string]string) ([]models.Bo
 
 		if ok {
 
-			for i := 0; i < len(doc); i += 2 {
+			for j := 0; j < len(doc); j += 2 {
 
-				switch doc[i].(string) {
+				switch doc[j].(string) {
 				case "author":
-					book.Author = doc[i+1].(string)
+					book.Author = doc[j+1].(string)
 				case "category":
-					book.Category = doc[i+1].(string)
+					book.Category = doc[j+1].(string)
 				case "title":
-					book.Title = doc[i+1].(string)
+					book.Title = doc[j+1].(string)
 				case "price":
-					book.Price = doc[i+1].(string)
+					book.Price = doc[j+1].(string)
 				case "id":
-					id, _ := uuid.Parse(doc[i+1].(string))
+					id, _ := uuid.Parse(doc[j+1].(string))
 					book.Id = id
 				case "create_at":
-					created_at, _ := time.Parse(time.RFC3339, doc[i+1].(string))
+					created_at, _ := time.Parse(time.RFC3339, doc[j+1].(string))
 					book.Created_at = created_at
 				}
 
