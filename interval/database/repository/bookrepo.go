@@ -135,7 +135,7 @@ func (repo *BookRepository) GetAllBooks(queries map[string]string) ([]models.Boo
 
 	parameters = append(parameters, page)
 
-	order := " ORDER BY createAt DESC "
+	order := " ORDER BY create_at DESC "
 
 	pagination := fmt.Sprintf(" LIMIT 15 OFFSET $%d * 15", count)
 
