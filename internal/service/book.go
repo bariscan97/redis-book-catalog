@@ -1,8 +1,8 @@
 package service
 
 import (
-	"bookservice/interval/cache"
-	"bookservice/interval/database/repository"
+	"bookservice/internal/cache"
+	"bookservice/internal/database/repository"
 	"bookservice/pkg/models"
 	"fmt"
 

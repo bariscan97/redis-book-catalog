@@ -1,7 +1,7 @@
 package routes
 
 import (
-	"bookservice/interval/controller"
+	"bookservice/internal/controller"
 
 	"github.com/gin-gonic/gin"
 )

@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"bookservice/interval/database"
+	"bookservice/internal/database"
 	"bookservice/pkg/models"
 	"context"
 	"strings"

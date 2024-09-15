@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bookservice/interval/routes"
+	"bookservice/internal/routes"
 	"log"
 	"os"
 
