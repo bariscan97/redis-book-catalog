@@ -3,6 +3,7 @@ package controller
 import (
 	"bookservice/internal/service"
 	"bookservice/pkg/models"
+	
 	"net/http"
 
 	"strconv"
@@ -24,9 +25,9 @@ type IBookController interface {
 	UpdatePriceById(c *gin.Context)
 }
 
-func NewUserController() IBookController {
+func NewUserController(bookservice service.IBookService) IBookController {
 	return &BookController{
-		bookService: service.NewBookService(),
+		bookService: bookservice,
 	}
 }
 
@@ -44,7 +45,7 @@ func (bookController *BookController) CreateBook(c *gin.Context) {
 	}
 
 	if err := validate.Struct(book); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
 			"error": err.Error(),
 		})
 		return
@@ -57,14 +58,15 @@ func (bookController *BookController) CreateBook(c *gin.Context) {
 		})
 		return
 	}
+	
 	if err := bookController.bookService.CreateBook(&book); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	c.JSON(http.StatusCreated, gin.H{
 		"message": "succesful",
 	})
 }
@@ -74,20 +76,20 @@ func (bookController *BookController) DeleteBookById(c *gin.Context) {
 	bookID, err := uuid.Parse(c.Param("id"))
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	if err := bookController.bookService.DeleteBookById(bookID); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	if err := bookController.bookService.DeleteBookById(bookID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusNoContent, gin.H{
 		"message": "succesful",
 	})
 }
@@ -95,7 +97,7 @@ func (bookController *BookController) DeleteBookById(c *gin.Context) {
 func (bookController *BookController) GetBookById(c *gin.Context) {
 	bookID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
 		})
 		return
@@ -104,19 +106,21 @@ func (bookController *BookController) GetBookById(c *gin.Context) {
 	books, err := bookController.bookService.GetBookById(bookID)
 
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
+		c.JSON(http.StatusNotFound, gin.H{
 			"error": err.Error(),
 		})
 		return
 	}
 
-	c.JSON(http.StatusAccepted, books)
+	c.JSON(http.StatusOK, books)
 }
 
 func (bookController *BookController) GetAllBooks(c *gin.Context) {
-
+	
 	queries := make(map[string]string)
+	
 	queries["page"] = "0"
+	
 	ALL := c.Request.URL.Query()
 
 	for i, j := range ALL {
@@ -135,13 +139,13 @@ func (bookController *BookController) GetAllBooks(c *gin.Context) {
 	books, err := bookController.bookService.GetAllBooks(queries)
 
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
 		})
 		return
 	}
 
-	c.JSON(http.StatusAccepted, books)
+	c.JSON(http.StatusOK, books)
 }
 
 func (bookController *BookController) UpdatePriceById(c *gin.Context) {
@@ -149,7 +153,7 @@ func (bookController *BookController) UpdatePriceById(c *gin.Context) {
 	bookID, err := uuid.Parse(c.Param("id"))
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
 		})
 		return
@@ -165,7 +169,7 @@ func (bookController *BookController) UpdatePriceById(c *gin.Context) {
 	}
 
 	if err := bookController.bookService.UpdatePriceById(bookID, newPrice); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
 		})
 		return
@@ -176,3 +180,4 @@ func (bookController *BookController) UpdatePriceById(c *gin.Context) {
 	})
 
 }
+

@@ -1,6 +1,9 @@
 # Makefile
 
 app_init:
-	./scripts/script.sh
+	docker-compose up
 
-.PHONY: app_init
+redis_index:
+	./scripts/redis.sh
+
+.PHONY: app_init redis_index

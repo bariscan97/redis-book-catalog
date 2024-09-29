@@ -4,9 +4,7 @@ import (
 	"bookservice/pkg/models"
 	"context"
 	"fmt"
-	"os"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -18,41 +16,39 @@ type RedisClient struct {
 }
 
 type IRedisClient interface {
-	CreateBooks(data []models.BookModel) error
+	CreateBooks(data *models.CreateBookRequestModel) error
 	DeleteBookById(bookID uuid.UUID) error
-	GetBookById(bookID uuid.UUID) ([]models.BookModel, error)
+	GetBookById(bookID uuid.UUID) (*models.BookModel, error)
 	GetAllBooks(queries map[string]string) ([]models.BookModel, error)
 	UpdatePriceById(bookID uuid.UUID, newPrice string) error
 }
 
-func NewCacheClient() IRedisClient {
+func NewCacheClient(redisCli *redis.Client) IRedisClient {
 	return &RedisClient{
-		rdb: redis.NewClient(&redis.Options{
-			Addr: os.Getenv("REDIS_ADDR"),
-		}),
+		rdb: redisCli,
 	}
 }
 
-func (redisCli *RedisClient) CreateBooks(books []models.BookModel) error {
+func (redisCli *RedisClient) CreateBooks(book *models.CreateBookRequestModel) error {
 
 	ctx := context.Background()
-	wg := sync.WaitGroup{}
-	for _, book := range books {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			key := fmt.Sprintf("book:%s", book.Id.String())
-			redisCli.rdb.HSet(ctx, key, map[string]interface{}{
-				"id":       book.Id.String(),
-				"title":    book.Title,
-				"author":   book.Author,
-				"category": book.Category,
-				"price":    book.Price,
-			})
-		}()
-	}
 
-	wg.Wait()
+	ID := uuid.New()
+
+	key := fmt.Sprintf("book:%s", ID)
+
+	err := redisCli.rdb.HSet(ctx, key, map[string]interface{}{
+		"id":         ID.String(),
+		"title":      book.Title,
+		"author":     book.Author,
+		"category":   book.Category,
+		"price":      book.Price,
+		"created_at": time.Now().Unix(),
+	})
+
+	if err.Err() != redis.Nil {
+		return err.Err()
+	}
 
 	return nil
 }
@@ -69,7 +65,7 @@ func (redisCli *RedisClient) DeleteBookById(bookID uuid.UUID) error {
 	}
 	return nil
 }
-func (redisCli *RedisClient) GetBookById(bookID uuid.UUID) ([]models.BookModel, error) {
+func (redisCli *RedisClient) GetBookById(bookID uuid.UUID) (*models.BookModel, error) {
 
 	ctx := context.Background()
 
@@ -78,29 +74,30 @@ func (redisCli *RedisClient) GetBookById(bookID uuid.UUID) ([]models.BookModel, 
 	result, err := redisCli.rdb.HGetAll(ctx, key).Result()
 
 	if err != nil {
-		return []models.BookModel{}, fmt.Errorf(err.Error())
-	}
-
-	if len(result) == 0 {
-		return []models.BookModel{}, nil
+		return &models.BookModel{}, fmt.Errorf(err.Error())
 	}
 
 	var book models.BookModel
-
+	ID, err := uuid.Parse(result["id"])
+	if err != nil {
+		return &models.BookModel{}, fmt.Errorf(err.Error()) 
+	}
+	book.Id = ID
 	book.Author = result["author"]
 	book.Category = result["category"]
 	book.Title = result["title"]
 	book.Price = result["price"]
 
-	created_at, _ := time.Parse(time.RFC3339, result["create_at"])
+	tmx, err := strconv.ParseInt(result["created_at"], 10, 64)
 
-	book.Created_at = created_at
+	if err != nil {
+		panic(err)
+	}
 
-	id, _ := uuid.Parse(result["id"])
+	tm := time.Unix(tmx, 0)
+	book.Created_at = tm
 
-	book.Id = id
-
-	return []models.BookModel{book}, nil
+	return &book, nil
 }
 func (redisCli *RedisClient) GetAllBooks(queries map[string]string) ([]models.BookModel, error) {
 
@@ -108,12 +105,32 @@ func (redisCli *RedisClient) GetAllBooks(queries map[string]string) ([]models.Bo
 
 	query := ""
 
-	for k, v := range queries {
-		if k == "page" {
+	for key, value := range queries {
+
+		if key == "page" {
 			continue
 		}
-		query += fmt.Sprintf("@%s:%s ", k, v)
+
+		switch key {
+		case "gt":
+			num, err := strconv.Atoi(value)
+			if err != nil {
+				return []models.BookModel{}, fmt.Errorf(err.Error())
+			}
+			query += fmt.Sprintf("@%s:[%d +inf] ", key, num)
+
+		case "lt":
+			num, err := strconv.Atoi(value)
+			if err != nil {
+				return []models.BookModel{}, fmt.Errorf(err.Error())
+			}
+			query += fmt.Sprintf("@%s:[0 %d] ", key, num)
+
+		default:
+			query += fmt.Sprintf("@%s:%s ", key, value)
+		}
 	}
+
 	if query == "" {
 		query = "*"
 	}
@@ -121,15 +138,18 @@ func (redisCli *RedisClient) GetAllBooks(queries map[string]string) ([]models.Bo
 	var start int
 
 	num, err := strconv.Atoi(queries["page"])
+
 	if err != nil {
 		start = 0
 	} else {
 		start = num
 	}
 
-	pageSize := start * 15
+	pageSize := 15
 
-	result, err := redisCli.rdb.Do(ctx, "FT.SEARCH", "idx:books", query, "SORTBY", "created_at", "DESC", "LIMIT", strconv.Itoa(start), strconv.Itoa(pageSize)).Result()
+	offset := pageSize * start
+
+	result, err := redisCli.rdb.Do(ctx, "FT.SEARCH", "idx:books", query, "SORTBY", "created_at", "DESC", "LIMIT", offset, pageSize).Result()
 
 	if err != nil {
 		return []models.BookModel{}, nil
@@ -154,6 +174,12 @@ func (redisCli *RedisClient) GetAllBooks(queries map[string]string) ([]models.Bo
 			for j := 0; j < len(doc); j += 2 {
 
 				switch doc[j].(string) {
+				case "id" :
+					ID, err := uuid.Parse(doc[j + 1].(string))
+					if err != nil {
+						break
+					}
+					book.Id = ID
 				case "author":
 					book.Author = doc[j+1].(string)
 				case "category":
@@ -162,12 +188,13 @@ func (redisCli *RedisClient) GetAllBooks(queries map[string]string) ([]models.Bo
 					book.Title = doc[j+1].(string)
 				case "price":
 					book.Price = doc[j+1].(string)
-				case "id":
-					id, _ := uuid.Parse(doc[j+1].(string))
-					book.Id = id
-				case "create_at":
-					created_at, _ := time.Parse(time.RFC3339, doc[j+1].(string))
-					book.Created_at = created_at
+				case "created_at":
+					tmx, err := strconv.ParseInt(doc[j+1].(string), 10, 64)
+					if err != nil {
+						break
+					}
+					tm := time.Unix(tmx, 0)
+					book.Created_at = tm
 				}
 
 			}
@@ -193,5 +220,6 @@ func (redisCli *RedisClient) UpdatePriceById(bookID uuid.UUID, newPrice string) 
 	if err != nil {
 		return fmt.Errorf(err.Error())
 	}
+
 	return nil
 }

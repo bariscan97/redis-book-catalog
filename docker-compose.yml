@@ -8,20 +8,6 @@ services:
       - "6379:6379"
     networks:
       - book_network
-
-  postgres:
-    image: postgres:latest
-    container_name: postgres
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: mypassword
-      POSTGRES_DB: my_database
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - book_network
   
   goapp: 
     build:
@@ -31,14 +17,12 @@ services:
       - "3000:3000"
     restart: always
     depends_on:
-      - postgres
       - redisearch
     networks:
       - book_network
         
 volumes:
   redis_data:
-  postgres_data:
 
 networks:
   book_network:
