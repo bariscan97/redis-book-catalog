@@ -103,7 +103,7 @@ func (bookController *BookController) GetBookById(c *gin.Context) {
 		return
 	}
 
-	books, err := bookController.bookService.GetBookById(bookID)
+	book, err := bookController.bookService.GetBookById(bookID)
 
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
@@ -112,7 +112,7 @@ func (bookController *BookController) GetBookById(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, books)
+	c.JSON(http.StatusOK, book)
 }
 
 func (bookController *BookController) GetAllBooks(c *gin.Context) {
