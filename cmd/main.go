@@ -36,7 +36,7 @@ func main() {
 		bookRoutes.POST("/", bookController.CreateBook)       
 		bookRoutes.GET("/", bookController.GetAllBooks)       
 		bookRoutes.GET("/:id", bookController.GetBookById)    
-		bookRoutes.PUT("/:id", bookController.GetBookById) 
+		bookRoutes.PUT("/:id", bookController.UpdatePriceById) 
 		bookRoutes.DELETE("/:id", bookController.DeleteBookById)  
 	}
 
