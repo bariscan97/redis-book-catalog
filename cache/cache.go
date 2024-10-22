@@ -1,7 +1,7 @@
 package cache
 
 import (
-	"bookservice/pkg/models"
+	"bookservice/models"
 	"context"
 	"fmt"
 	"strconv"

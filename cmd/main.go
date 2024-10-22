@@ -1,9 +1,9 @@
 package main
 
 import (
-	"bookservice/internal/cache"
-	"bookservice/internal/controller"
-	"bookservice/internal/service"
+	"bookservice/cache"
+	"bookservice/controller"
+	"bookservice/service"
 	"log"
 	"os"
 

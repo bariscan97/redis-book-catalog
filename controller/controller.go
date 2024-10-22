@@ -1,8 +1,8 @@
 package controller
 
 import (
-	"bookservice/internal/service"
-	"bookservice/pkg/models"
+	"bookservice/service"
+	"bookservice/models"
 	
 	"net/http"
 

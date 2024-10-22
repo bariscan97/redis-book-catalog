@@ -1,8 +1,8 @@
 package service
 
 import (
-	"bookservice/internal/cache"
-	"bookservice/pkg/models"
+	"bookservice/cache"
+	"bookservice/models"
 
 	"github.com/google/uuid"
 )
